@@ -1,5 +1,6 @@
 import sys
 from collections import deque
+from heapq import heapify, heappush, heappop
 
 
 class Board:
@@ -88,6 +89,32 @@ class Board:
         return path
 
 
+class Frontier:
+    def __init__(self):
+        self.data = deque()
+        self.index = {}
+
+    def push(self, c):
+        self.data.append(c)
+        self.index[c] = len(self.data) - 1
+
+    def pop(self):
+        r = self.data.pop()
+        self.index.pop(r)
+        return r
+
+    def dequeue(self):
+        r = self.data.popleft()
+        self.index.pop(r)
+        return r
+
+    def __contains__(self, item):
+        return item in self.index
+
+    def __sizeof__(self):
+        return len(self.data)
+
+
 class Solver:
     def __init__(self, root, frontier):
         self.root = root
@@ -106,7 +133,7 @@ class Solver:
                 self.visited.add(n)
 
             possible_actions = n.actions()
-            for ac in possible_actions:
+            for ac in self.post_expand(possible_actions):
                 if ac in self.visited:
                     continue
                 if ac in self.frontier:
@@ -120,31 +147,44 @@ class Solver:
     def remove(self):
         raise NotImplementedError()
 
+    def post_expand(self, nodes):
+        return nodes
+
 
 class DfsSolver(Solver):
     def __init__(self, root):
-        Solver.__init__(self, root, list())
+        Solver.__init__(self, root, Frontier())
 
     def add(self, ac):
-        self.frontier.append(ac)
+        self.frontier.push(ac)
 
     def remove(self):
         return self.frontier.pop()
+
+    def post_expand(self, nodes):
+        return reversed(nodes)
 
 
 class BfsSolver(Solver):
     def __init__(self, root):
-        Solver.__init__(self, root, deque())
+        Solver.__init__(self, root, Frontier())
 
     def add(self, ac):
-        self.frontier.appendleft(ac)
+        self.frontier.push(ac)
 
     def remove(self):
-        return self.frontier.pop()
+        return self.frontier.dequeue()
 
 
-def ast(board):
-    pass
+class AStarSolver(Solver):
+    def __init__(self, root):
+        Solver.__init__(self, root, Frontier())
+
+    def add(self, ac):
+        heappush(self.frontier, ac)
+
+    def remove(self):
+        return heappop(self.frontier)
 
 
 Board.GOAL = Board('0,1,2,3,4,5,6,7,8')
@@ -159,7 +199,7 @@ if method_param == 'bfs':
 elif method_param == 'dfs':
     solver = DfsSolver(initial)
 elif method_param == 'ast':
-    ast(initial)
+    solver = AStarSolver(initial)
 else:
     raise Exception("unsupported")
 
