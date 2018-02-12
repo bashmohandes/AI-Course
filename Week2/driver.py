@@ -76,65 +76,71 @@ class Board:
         board[pos_1[0]][pos_1[1]] = board[pos_2[0]][pos_2[1]]
         board[pos_2[0]][pos_2[1]] = t
 
+    def calculate_path(self):
+        path = []
+        c = self
 
-def calculate_path(board):
-    path = []
-    c = board
+        while c.move:
+            path.append(c.move)
+            c = c.parent
 
-    while c.move:
-        path.append(c.move)
-        c = c.parent
-
-    path.reverse()
-    return path
+        path.reverse()
+        return path
 
 
-def bfs(board):
-    frontier = deque([board])
-    visited = set()
+class Solver:
+    def __init__(self, root, frontier):
+        self.root = root
+        self.frontier = frontier
+        self.visited = set()
+        self.add(root)
 
-    while frontier:
-        n = frontier.pop()
+    def solve(self):
+        while self.frontier:
+            n = self.remove()
 
-        if n.is_goal():
-            print calculate_path(n)
-            return
-        else:
-            visited.add(n)
-
-        possible_actions = n.actions()
-        for ac in possible_actions:
-            if ac in visited:
-                continue
-            if ac in frontier:
-                continue
+            if n.is_goal():
+                print n.calculate_path()
+                return
             else:
-                frontier.appendleft(ac)
+                self.visited.add(n)
+
+            possible_actions = n.actions()
+            for ac in possible_actions:
+                if ac in self.visited:
+                    continue
+                if ac in self.frontier:
+                    continue
+                else:
+                    self.add(ac)
+
+    def add(self, ac):
+        raise NotImplementedError()
+
+    def remove(self):
+        raise NotImplementedError()
 
 
-def dfs(board):
-    frontier = [board]
-    visited = set()
+class DfsSolver(Solver):
+    def __init__(self, root):
+        Solver.__init__(self, root, list())
 
-    while frontier:
-        n = frontier.pop()
-        # print n
-        # print
-        if n.is_goal():
-            print calculate_path(n)
-            return
-        else:
-            visited.add(n)
+    def add(self, ac):
+        self.frontier.append(ac)
 
-        possible_actions = n.actions()
-        possible_actions.reverse()
-        for ac in possible_actions:
-            if ac in visited:
-                continue
-            if ac in frontier:
-                continue
-            else:
-                frontier.append(ac)
+    def remove(self):
+        return self.frontier.pop()
+
+
+class BfsSolver(Solver):
+    def __init__(self, root):
+        Solver.__init__(self, root, deque())
+
+    def add(self, ac):
+        self.frontier.appendleft(ac)
+
+    def remove(self):
+        return self.frontier.pop()
 
 
 def ast(board):
@@ -147,12 +153,14 @@ method_param = sys.argv[1]
 board_param = sys.argv[2]
 
 initial = Board(board_param)
-
+solver = None
 if method_param == 'bfs':
-    bfs(initial)
+    solver = BfsSolver(initial)
 elif method_param == 'dfs':
-    dfs(initial)
+    solver = DfsSolver(initial)
 elif method_param == 'ast':
     ast(initial)
 else:
     raise Exception("unsupported")
+
+solver.solve()
